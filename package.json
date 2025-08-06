@@ -1,0 +1,24 @@
+{
+  "name": "expense_tracking",
+  "version": "1.0.0",
+  "description": "Personal expense tracking web application with OCR processing",
+  "scripts": {
+    "dev:backend": "cd backend && source venv/bin/activate && python main.py",
+    "dev:frontend": "cd frontend && npm start",
+    "install:backend": "cd backend && python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt",
+    "install:frontend": "cd frontend && npm install",
+    "install": "npm run install:backend && npm run install:frontend",
+    "test:backend": "cd backend && source venv/bin/activate && pytest",
+    "test:frontend": "cd frontend && npm test",
+    "build:frontend": "cd frontend && npm run build",
+    "db:migrate": "cd backend && source venv/bin/activate && alembic upgrade head",
+    "db:migration": "cd backend && source venv/bin/activate && alembic revision --autogenerate"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:daniele-moro/expense_tracking.git"
+  },
+  "keywords": ["expense tracking", "OCR", "financial", "receipts"],
+  "author": "Daniele Moro <daniele.moro92@gmail.com>",
+  "license": "MIT"
+}
