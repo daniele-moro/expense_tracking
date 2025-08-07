@@ -8,9 +8,8 @@ import axios from 'axios';
 interface User {
   id: number;
   email: string;
-  first_name: string;
-  last_name: string;
   is_active: boolean;
+  created_at: string;
 }
 
 interface AuthContextType {
@@ -20,7 +19,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
   logout: () => void;
-  register: (email: string, password: string, firstName: string, lastName: string) => Promise<void>;
+  register: (email: string, password: string) => Promise<void>;
   refreshToken: () => Promise<boolean>;
 }
 
@@ -92,7 +91,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const verifyTokenAndSetUser = async (token: string) => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/auth/me`, {
+      const response = await axios.get(`${API_BASE_URL}/api/v1/protected/profile`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setUser(response.data);
@@ -112,12 +111,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (email: string, password: string, rememberMe: boolean = false): Promise<void> => {
     try {
-      const response = await axios.post(`${API_BASE_URL}/auth/login`, {
+      const response = await axios.post(`${API_BASE_URL}/api/v1/auth/login`, {
         email,
         password
       });
 
-      const { access_token, refresh_token, user: userData } = response.data;
+      const { access_token, refresh_token } = response.data;
 
       // Store tokens based on remember me preference
       const storage = rememberMe ? localStorage : sessionStorage;
@@ -125,7 +124,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       storage.setItem('refreshToken', refresh_token);
 
       setAccessToken(access_token);
-      setUser(userData);
+
+      // Fetch user data after successful login
+      await verifyTokenAndSetUser(access_token);
     } catch (error) {
       if (axios.isAxiosError(error)) {
         throw new Error(error.response?.data?.detail || 'Login failed');
@@ -134,13 +135,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const register = async (email: string, password: string, firstName: string, lastName: string): Promise<void> => {
+  const register = async (email: string, password: string): Promise<void> => {
     try {
-      await axios.post(`${API_BASE_URL}/auth/register`, {
+      await axios.post(`${API_BASE_URL}/api/v1/auth/register`, {
         email,
-        password,
-        first_name: firstName,
-        last_name: lastName
+        password
       });
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -157,7 +156,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return false;
       }
 
-      const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
+      const response = await axios.post(`${API_BASE_URL}/api/v1/auth/refresh`, {
         refresh_token: storedRefreshToken
       });
 

@@ -161,9 +161,7 @@ const Register: React.FC = () => {
     try {
       await register(
         formData.email.trim(),
-        formData.password,
-        formData.firstName.trim(),
-        formData.lastName.trim()
+        formData.password
       );
       
       setSuccess('Registration successful! Please sign in to continue.');
