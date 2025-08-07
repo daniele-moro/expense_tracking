@@ -11,6 +11,8 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 # Import models after adding to path
 from app.database.database import Base
+# Import all models so Alembic can detect them for migrations
+from app.models import *  # noqa
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

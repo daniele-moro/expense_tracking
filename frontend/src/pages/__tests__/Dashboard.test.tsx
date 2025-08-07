@@ -10,7 +10,9 @@ import Dashboard from '../Dashboard';
 // Mock MUI components that have compatibility issues
 jest.mock('@mui/material', () => ({
   ...jest.requireActual('@mui/material'),
-  Grid: ({ children, ...props }: any) => <div data-testid="grid" {...props}>{children}</div>,
+  Grid: ({ children, item, container, ...props }: any) => (
+    <div data-testid="grid" {...props}>{children}</div>
+  ),
 }));
 
 describe('Dashboard Component', () => {
@@ -47,8 +49,8 @@ describe('Dashboard Component', () => {
     expect(screen.getByText('Utilities')).toBeInTheDocument();
   });
 
-  test('shows upload documents button', () => {
+  test('shows upload receipt button', () => {
     render(<Dashboard />);
-    expect(screen.getByText('Upload Documents')).toBeInTheDocument();
+    expect(screen.getByText('Upload Receipt')).toBeInTheDocument();
   });
 });
