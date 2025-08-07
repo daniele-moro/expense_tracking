@@ -51,3 +51,9 @@ Key entities include:
 **Current State**: Project is in requirements/planning phase with only a requirements.md file present. No code has been implemented yet.
 
 **Next Steps**: Set up initial project structure, choose technology stack, and begin implementing core components starting with the document upload and OCR processing pipeline.
+
+## Code Style
+- Follow PEP8 code standards
+- always write tests, try doing TDD
+- leave meaningful comments. A head comment to the file quickly describing what the file is doing, and in-line comments when really needed and the code is not straighforward
+- before committing run tests

@@ -1,3 +1,7 @@
+/**
+ * Layout component that provides the main application structure
+ * including navigation drawer, app bar, and content area
+ */
 import React, { useState } from 'react';
 import {
   AppBar,
@@ -38,6 +42,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Toggle mobile drawer visibility for responsive navigation
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };

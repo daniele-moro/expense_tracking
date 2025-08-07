@@ -32,7 +32,7 @@ import {
 
 const Upload: React.FC = () => {
   const [dragActive, setDragActive] = useState(false);
-  const [uploadedFiles, setUploadedFiles] = useState([
+  const [uploadedFiles] = useState([
     {
       id: 1,
       name: 'grocery_receipt_20250806.jpg',

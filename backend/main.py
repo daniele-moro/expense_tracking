@@ -1,9 +1,9 @@
 """
 FastAPI main application entry point
 """
+import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import uvicorn
 
 app = FastAPI(
     title="Expense Tracking API",
