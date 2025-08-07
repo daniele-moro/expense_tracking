@@ -49,3 +49,16 @@ def client():
     yield test_client
     Base.metadata.drop_all(bind=engine)
     app.dependency_overrides.clear()
+
+
+@pytest.fixture(scope="function") 
+def test_user(db_session):
+    """Create a test user for authentication tests"""
+    from app.services.auth_service import create_user
+    
+    user = create_user(
+        db=db_session,
+        email="test@example.com", 
+        password="TestPass123"
+    )
+    return user

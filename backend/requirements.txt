@@ -2,6 +2,7 @@
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
 pydantic-settings==2.0.3
+email-validator==2.1.0
 
 # Database
 sqlalchemy==2.0.23
@@ -29,3 +30,4 @@ numpy==1.26.2
 pytest==7.4.3
 pytest-asyncio==0.21.1
 python-dotenv==1.0.0
+httpx==0.25.2

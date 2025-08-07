@@ -44,11 +44,11 @@
 ## Phase 2: Authentication & User Management (Week 3)
 
 ### 2.1 Backend Authentication
-- [ ] **2.1.1** Implement user registration endpoint
+- [x] **2.1.1** Implement user registration endpoint
   - Password hashing and validation
   - Email validation and uniqueness checks
   - User creation with proper error handling
-- [ ] **2.1.2** Implement user login endpoint
+- [x] **2.1.2** Implement user login endpoint
   - Credential verification
   - JWT token generation and signing
   - Refresh token mechanism
@@ -56,7 +56,7 @@
   - JWT token validation
   - Protected route decorators
   - User context injection
-- [ ] **2.1.4** Add password security features
+- [x] **2.1.4** Add password security features
   - Password strength validation
   - Secure password hashing (bcrypt)
   - Rate limiting for auth endpoints
