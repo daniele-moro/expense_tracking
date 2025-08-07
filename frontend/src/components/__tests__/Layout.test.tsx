@@ -13,6 +13,28 @@ jest.mock('react-router-dom', () => ({
   useLocation: () => ({ pathname: '/' }),
 }));
 
+// Mock useAuth hook to provide test user data
+jest.mock('../../contexts/AuthContext', () => ({
+  ...jest.requireActual('../../contexts/AuthContext'),
+  useAuth: () => ({
+    user: {
+      id: 1,
+      email: 'test@example.com',
+      first_name: 'Test',
+      last_name: 'User',
+      is_active: true
+    },
+    accessToken: 'mock-token',
+    isAuthenticated: true,
+    isLoading: false,
+    login: jest.fn(),
+    logout: jest.fn(),
+    register: jest.fn(),
+    refreshToken: jest.fn(),
+  }),
+  AuthProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+}));
+
 // Test wrapper
 const LayoutWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <Layout>{children}</Layout>
