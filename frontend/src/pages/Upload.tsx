@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import {
   Box,
   Paper,
@@ -18,6 +18,16 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Alert,
+  Snackbar,
+  Tooltip,
+  Menu,
+  MenuItem,
+  FormControl,
+  FormLabel,
+  RadioGroup,
+  FormControlLabel,
+  Radio,
 } from '@mui/material';
 import {
   CloudUpload,
@@ -28,40 +38,70 @@ import {
   CheckCircle,
   Error,
   Schedule,
+  Download,
+  Clear,
 } from '@mui/icons-material';
+
+import { useFileUpload } from '../hooks/useFileUpload';
+import { useDocuments } from '../hooks/useDocuments';
+import FileService from '../services/fileService';
 
 const Upload: React.FC = () => {
   const [dragActive, setDragActive] = useState(false);
-  const [uploadedFiles] = useState([
-    {
-      id: 1,
-      name: 'grocery_receipt_20250806.jpg',
-      type: 'receipt',
-      status: 'completed',
-      confidence: 95,
-      uploadedAt: '2025-08-06 10:30',
-      extractedAmount: 67.45,
-    },
-    {
-      id: 2,
-      name: 'gas_station_receipt.jpg',
-      type: 'receipt',
-      status: 'processing',
-      confidence: null,
-      uploadedAt: '2025-08-06 10:25',
-      extractedAmount: null,
-    },
-    {
-      id: 3,
-      name: 'payslip_july_2025.pdf',
-      type: 'payslip',
-      status: 'needs_review',
-      confidence: 75,
-      uploadedAt: '2025-08-06 09:15',
-      extractedAmount: 3500.00,
-    },
-  ]);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [selectedDocumentType, setSelectedDocumentType] = useState<'receipt' | 'payslip'>('receipt');
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean;
+    message: string;
+    severity: 'success' | 'error' | 'warning' | 'info';
+  }>({ open: false, message: '', severity: 'info' });
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Custom hooks for file management
+  const { uploadingFiles, uploadFile, removeUploadingFile, clearCompleted, isUploading } = useFileUpload();
+  const { 
+    documents, 
+    loading, 
+    error, 
+    total, 
+    refresh, 
+    deleteDocument, 
+    downloadDocument, 
+    filterByType, 
+    currentFilter 
+  } = useDocuments();
+
+  // File handling functions
+  const showSnackbar = useCallback((message: string, severity: 'success' | 'error' | 'warning' | 'info') => {
+    setSnackbar({ open: true, message, severity });
+  }, []);
+
+  const handleFiles = useCallback(async (files: FileList) => {
+    const fileArray = Array.from(files);
+    
+    for (const file of fileArray) {
+      // Validate file
+      const validation = FileService.validateFile(file);
+      if (!validation.valid) {
+        showSnackbar(validation.error || 'Invalid file', 'error');
+        continue;
+      }
+
+      // Infer document type if not explicitly set
+      const documentType = FileService.inferDocumentType(file.name) || selectedDocumentType;
+
+      try {
+        await uploadFile(file, documentType);
+        showSnackbar(`${file.name} uploaded successfully!`, 'success');
+        // Refresh documents list
+        refresh();
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Upload failed';
+        showSnackbar(`Failed to upload ${file.name}: ${errorMessage}`, 'error');
+      }
+    }
+  }, [uploadFile, selectedDocumentType, showSnackbar, refresh]);
 
   const handleDragEnter = (e: React.DragEvent) => {
     e.preventDefault();
@@ -79,8 +119,38 @@ const Upload: React.FC = () => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    // Handle file drop logic here
+    
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFiles(e.dataTransfer.files);
+    }
   };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      handleFiles(e.target.files);
+      // Clear the input so the same file can be uploaded again if needed
+      e.target.value = '';
+    }
+  };
+
+  const handleDelete = useCallback(async (documentId: number, filename: string) => {
+    try {
+      await deleteDocument(documentId);
+      showSnackbar(`${filename} deleted successfully`, 'success');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Delete failed';
+      showSnackbar(`Failed to delete ${filename}: ${errorMessage}`, 'error');
+    }
+  }, [deleteDocument, showSnackbar]);
+
+  const handleDownload = useCallback(async (documentId: number, filename: string) => {
+    try {
+      await downloadDocument(documentId, filename);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Download failed';
+      showSnackbar(`Failed to download ${filename}: ${errorMessage}`, 'error');
+    }
+  }, [downloadDocument, showSnackbar]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -88,24 +158,32 @@ const Upload: React.FC = () => {
         return <CheckCircle color="success" />;
       case 'processing':
         return <Schedule color="warning" />;
-      case 'needs_review':
+      case 'pending':
+        return <Schedule color="info" />;
+      case 'failed':
         return <Error color="error" />;
       default:
         return <Schedule color="disabled" />;
     }
   };
 
-  const getStatusColor = (status: string): "success" | "warning" | "error" | "default" => {
+  const getStatusColor = (status: string): "success" | "warning" | "error" | "info" | "default" => {
     switch (status) {
       case 'completed':
         return 'success';
       case 'processing':
         return 'warning';
-      case 'needs_review':
+      case 'pending':
+        return 'info';
+      case 'failed':
         return 'error';
       default:
         return 'default';
     }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleString();
   };
 
   return (
@@ -146,10 +224,36 @@ const Upload: React.FC = () => {
             <Typography variant="body2" color="textSecondary" paragraph>
               or click to select files
             </Typography>
-            <Button variant="contained" component="label" sx={{ mb: 2 }}>
+            <Button 
+              variant="contained" 
+              component="label" 
+              sx={{ mb: 2 }}
+              disabled={isUploading}
+              onClick={() => fileInputRef.current?.click()}
+            >
               Choose Files
-              <input type="file" hidden multiple accept=".jpg,.jpeg,.png,.pdf" />
             </Button>
+            <input 
+              type="file" 
+              ref={fileInputRef}
+              hidden 
+              multiple 
+              accept=".jpg,.jpeg,.png,.pdf" 
+              onChange={handleFileSelect}
+            />
+            
+            {/* Document Type Selection */}
+            <FormControl sx={{ mt: 2 }}>
+              <FormLabel component="legend">Default Document Type</FormLabel>
+              <RadioGroup
+                row
+                value={selectedDocumentType}
+                onChange={(e) => setSelectedDocumentType(e.target.value as 'receipt' | 'payslip')}
+              >
+                <FormControlLabel value="receipt" control={<Radio />} label="Receipt" />
+                <FormControlLabel value="payslip" control={<Radio />} label="Payslip" />
+              </RadioGroup>
+            </FormControl>
             <Typography variant="caption" display="block" color="textSecondary">
               Max file size: 10MB • Formats: JPG, PNG, PDF
             </Typography>
@@ -197,84 +301,210 @@ const Upload: React.FC = () => {
           </Grid>
         </Grid>
 
-        {/* Processing Queue */}
+        {/* Processing Queue and Documents */}
         <Grid item xs={12}>
           <Paper sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom>
-              Processing Queue
-            </Typography>
-            {uploadedFiles.length === 0 ? (
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+              <Typography variant="h6">
+                Documents ({total})
+              </Typography>
+              <Box display="flex" gap={1} alignItems="center">
+                {uploadingFiles.length > 0 && (
+                  <Button 
+                    size="small" 
+                    onClick={clearCompleted}
+                    startIcon={<Clear />}
+                  >
+                    Clear Completed
+                  </Button>
+                )}
+                <Button size="small" onClick={() => filterByType()}>
+                  All
+                </Button>
+                <Button size="small" onClick={() => filterByType('receipt')}>
+                  Receipts
+                </Button>
+                <Button size="small" onClick={() => filterByType('payslip')}>
+                  Payslips
+                </Button>
+                <Button size="small" onClick={refresh}>
+                  Refresh
+                </Button>
+              </Box>
+            </Box>
+
+            {error && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {error}
+              </Alert>
+            )}
+
+            {/* Show uploading files first */}
+            {uploadingFiles.length > 0 && (
+              <>
+                <Typography variant="subtitle2" color="primary" gutterBottom>
+                  Uploading ({uploadingFiles.length})
+                </Typography>
+                <List>
+                  {uploadingFiles.map((file) => (
+                    <ListItem key={file.id} divider>
+                      <Box display="flex" alignItems="center" mr={2}>
+                        {file.status === 'uploading' && <Schedule color="primary" />}
+                        {file.status === 'completed' && <CheckCircle color="success" />}
+                        {file.status === 'error' && <Error color="error" />}
+                      </Box>
+                      <ListItemText
+                        primary={
+                          <Box display="flex" alignItems="center" gap={1}>
+                            <Typography variant="body1">{file.file.name}</Typography>
+                            <Chip
+                              label={file.documentType}
+                              size="small"
+                              color={file.documentType === 'receipt' ? 'primary' : 'secondary'}
+                              variant="outlined"
+                            />
+                            <Chip
+                              label={file.status}
+                              size="small"
+                              color={file.status === 'completed' ? 'success' : file.status === 'error' ? 'error' : 'info'}
+                              variant="outlined"
+                            />
+                          </Box>
+                        }
+                        secondary={
+                          <Box>
+                            <Typography variant="caption" color="textSecondary">
+                              Size: {FileService.formatFileSize(file.file.size)}
+                            </Typography>
+                            {file.error && (
+                              <Typography variant="caption" display="block" color="error">
+                                Error: {file.error}
+                              </Typography>
+                            )}
+                            {file.status === 'uploading' && (
+                              <Box sx={{ mt: 1 }}>
+                                <LinearProgress 
+                                  variant="determinate" 
+                                  value={file.progress.percentage} 
+                                  sx={{ width: 200 }}
+                                />
+                                <Typography variant="caption" color="textSecondary">
+                                  {file.progress.percentage}% uploaded
+                                </Typography>
+                              </Box>
+                            )}
+                          </Box>
+                        }
+                      />
+                      <ListItemSecondaryAction>
+                        <IconButton
+                          edge="end"
+                          color="error"
+                          onClick={() => removeUploadingFile(file.id)}
+                          size="small"
+                        >
+                          <Delete />
+                        </IconButton>
+                      </ListItemSecondaryAction>
+                    </ListItem>
+                  ))}
+                </List>
+              </>
+            )}
+
+            {/* Show existing documents */}
+            {loading ? (
+              <Box sx={{ py: 4, textAlign: 'center' }}>
+                <LinearProgress sx={{ mb: 2 }} />
+                <Typography variant="body2" color="textSecondary">
+                  Loading documents...
+                </Typography>
+              </Box>
+            ) : documents.length === 0 ? (
               <Typography variant="body2" color="textSecondary" sx={{ py: 4, textAlign: 'center' }}>
-                No files uploaded yet
+                No documents uploaded yet. Drop files above to get started!
               </Typography>
             ) : (
-              <List>
-                {uploadedFiles.map((file) => (
-                  <ListItem key={file.id} divider>
-                    <Box display="flex" alignItems="center" mr={2}>
-                      {getStatusIcon(file.status)}
-                    </Box>
-                    <ListItemText
-                      primary={
-                        <Box display="flex" alignItems="center" gap={1}>
-                          <Typography variant="body1">{file.name}</Typography>
-                          <Chip
-                            label={file.type}
-                            size="small"
-                            color={file.type === 'receipt' ? 'primary' : 'secondary'}
-                            variant="outlined"
-                          />
-                          <Chip
-                            label={file.status.replace('_', ' ')}
-                            size="small"
-                            color={getStatusColor(file.status)}
-                            variant="outlined"
-                          />
-                        </Box>
-                      }
-                      secondary={
-                        <Box>
-                          <Typography variant="caption" color="textSecondary">
-                            Uploaded: {file.uploadedAt}
-                          </Typography>
-                          {file.confidence && (
-                            <Typography variant="caption" display="block" color="textSecondary">
-                              OCR Confidence: {file.confidence}%
+              <>
+                <Typography variant="subtitle2" gutterBottom sx={{ mt: uploadingFiles.length > 0 ? 2 : 0 }}>
+                  Saved Documents
+                </Typography>
+                <List>
+                  {documents.map((document) => (
+                    <ListItem key={document.id} divider>
+                      <Box display="flex" alignItems="center" mr={2}>
+                        {getStatusIcon(document.processing_status)}
+                      </Box>
+                      <ListItemText
+                        primary={
+                          <Box display="flex" alignItems="center" gap={1}>
+                            <Typography variant="body1">{document.original_filename}</Typography>
+                            <Chip
+                              label={document.type}
+                              size="small"
+                              color={document.type === 'receipt' ? 'primary' : 'secondary'}
+                              variant="outlined"
+                            />
+                            <Chip
+                              label={document.processing_status}
+                              size="small"
+                              color={getStatusColor(document.processing_status)}
+                              variant="outlined"
+                            />
+                          </Box>
+                        }
+                        secondary={
+                          <Box>
+                            <Typography variant="caption" color="textSecondary">
+                              Uploaded: {formatDate(document.uploaded_at)}
                             </Typography>
-                          )}
-                          {file.extractedAmount && (
                             <Typography variant="caption" display="block" color="textSecondary">
-                              Extracted Amount: ${file.extractedAmount.toFixed(2)}
+                              Size: {FileService.formatFileSize(document.file_size)}
                             </Typography>
-                          )}
-                          {file.status === 'processing' && (
-                            <LinearProgress sx={{ mt: 1, width: 200 }} />
-                          )}
-                        </Box>
-                      }
-                    />
-                    <ListItemSecondaryAction>
-                      <IconButton
-                        edge="end"
-                        onClick={() => setPreviewOpen(true)}
-                        disabled={file.status === 'processing'}
-                      >
-                        <Visibility />
-                      </IconButton>
-                      <IconButton edge="end" color="error">
-                        <Delete />
-                      </IconButton>
-                    </ListItemSecondaryAction>
-                  </ListItem>
-                ))}
-              </List>
+                            {document.ocr_confidence && (
+                              <Typography variant="caption" display="block" color="textSecondary">
+                                OCR Confidence: {Math.round(document.ocr_confidence * 100)}%
+                              </Typography>
+                            )}
+                            {document.processing_status === 'processing' && (
+                              <LinearProgress sx={{ mt: 1, width: 200 }} />
+                            )}
+                          </Box>
+                        }
+                      />
+                      <ListItemSecondaryAction>
+                        <Tooltip title="Download">
+                          <IconButton
+                            edge="end"
+                            onClick={() => handleDownload(document.id, document.original_filename)}
+                            size="small"
+                          >
+                            <Download />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Delete">
+                          <IconButton 
+                            edge="end" 
+                            color="error"
+                            onClick={() => handleDelete(document.id, document.original_filename)}
+                            size="small"
+                          >
+                            <Delete />
+                          </IconButton>
+                        </Tooltip>
+                      </ListItemSecondaryAction>
+                    </ListItem>
+                  ))}
+                </List>
+              </>
             )}
-            {uploadedFiles.some(f => f.status === 'needs_review') && (
-              <Box sx={{ mt: 2, p: 2, backgroundColor: 'warning.light', borderRadius: 1 }}>
-                <Typography variant="body2" color="warning.dark">
-                  {uploadedFiles.filter(f => f.status === 'needs_review').length} document(s) need your review.
-                  <Button size="small" sx={{ ml: 1 }} color="warning">
-                    Review Now
+            
+            {documents.some(d => d.processing_status === 'failed') && (
+              <Box sx={{ mt: 2, p: 2, backgroundColor: 'error.light', borderRadius: 1 }}>
+                <Typography variant="body2" color="error.dark">
+                  {documents.filter(d => d.processing_status === 'failed').length} document(s) failed processing.
+                  <Button size="small" sx={{ ml: 1 }} color="error">
+                    Review Failed
                   </Button>
                 </Typography>
               </Box>
@@ -296,6 +526,22 @@ const Upload: React.FC = () => {
           <Button variant="contained">Edit Extracted Data</Button>
         </DialogActions>
       </Dialog>
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={() => setSnackbar({ ...snackbar, open: false })} 
+          severity={snackbar.severity} 
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

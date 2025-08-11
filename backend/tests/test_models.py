@@ -3,7 +3,7 @@ Tests for database models
 """
 from datetime import date
 
-from app.models.document import Document, DocumentType, ProcessingStatus
+from app.models.document import Document
 from app.models.expense import Expense
 from app.models.income import Income  # Required for SQLAlchemy relationships
 from app.models.user import User
@@ -58,17 +58,17 @@ def test_document_model_creation(db_session):
 
     document = Document(
         user_id=user.id,
-        type=DocumentType.RECEIPT,
+        type="receipt",
         original_filename="receipt.pdf",
         file_path="/uploads/receipt.pdf",
         file_size=1024,
         mime_type="application/pdf",
-        processing_status=ProcessingStatus.PENDING
+        processing_status="pending"
     )
     db_session.add(document)
     db_session.commit()
 
     assert document.id is not None
-    assert document.type == DocumentType.RECEIPT
-    assert document.processing_status == ProcessingStatus.PENDING
+    assert document.type == "receipt"
+    assert document.processing_status == "pending"
     assert document.user_id == user.id

@@ -16,6 +16,7 @@ python-multipart==0.0.6
 # File Processing
 pillow==10.1.0
 pytesseract==0.3.10
+python-magic==0.4.27
 
 # Background Tasks
 celery==5.3.4

@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.models import *  # This ensures all models are imported
 from app.api.auth import router as auth_router
 from app.api.protected_example import router as protected_router
+from app.api.files import router as files_router
 
 app = FastAPI(
     title="Expense Tracking API",
@@ -28,6 +29,7 @@ app.add_middleware(
 # Include API routers
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(protected_router, prefix="/api/v1")
+app.include_router(files_router, prefix="/api/v1")
 
 @app.get("/")
 async def root():

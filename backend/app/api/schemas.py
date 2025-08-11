@@ -1,9 +1,9 @@
 """
-Pydantic schemas for user authentication and management
+Pydantic schemas for user authentication and file management
 """
 from pydantic import BaseModel, EmailStr, field_validator, ConfigDict
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 import re
 
 
@@ -58,3 +58,25 @@ class TokenData(BaseModel):
     """Schema for token payload data"""
     user_id: Optional[int] = None
     email: Optional[str] = None
+
+
+class DocumentResponse(BaseModel):
+    """Schema for document response"""
+    model_config = ConfigDict(from_attributes=True)
+    
+    id: int
+    user_id: int
+    type: str
+    original_filename: str
+    file_size: int
+    mime_type: str
+    processing_status: str
+    ocr_confidence: Optional[float] = None
+    processed_at: Optional[datetime] = None
+    uploaded_at: datetime
+
+
+class DocumentListResponse(BaseModel):
+    """Schema for document list response"""
+    documents: List[DocumentResponse]
+    total: int
