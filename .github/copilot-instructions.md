@@ -56,4 +56,5 @@ Key entities include:
 - Follow PEP8 code standards
 - always write tests, try doing TDD
 - leave meaningful comments. A head comment to the file quickly describing what the file is doing, and in-line comments when really needed and the code is not straighforward
-- before committing run tests
+- before committing run tests using the makefile, if needed extend the makefile to add new tests
+- at the end of each task, commit the code, and mark the task as done
