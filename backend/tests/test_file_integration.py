@@ -2,17 +2,12 @@
 Integration tests for file upload workflow
 """
 import tempfile
-from pathlib import Path
 from io import BytesIO
+from typing import Tuple
 
 import pytest
-from fastapi.testclient import TestClient
 from PIL import Image
-from sqlalchemy.orm import Session
 
-from main import app
-from app.models.user import User
-from app.models.document import Document
 from app.services.auth_service import create_user, create_access_token
 
 
@@ -45,9 +40,10 @@ class TestFileIntegration:
         import shutil
         shutil.rmtree(self.temp_dir, ignore_errors=True)
     
-    def create_test_image_file(self, format: str = "JPEG", size: tuple = (100, 100)) -> BytesIO:
+    def create_test_image_file(self, format: str = "JPEG", size: Tuple[int, int] = (100, 100)) -> BytesIO:
         """Create a test image file in memory"""
-        img = Image.new('RGB', size, color=(255, 0, 0))  # Red color as RGB tuple
+        red_color: Tuple[int, int, int] = (255, 0, 0)
+        img = Image.new('RGB', size, red_color)
         buffer = BytesIO()
         img.save(buffer, format=format)
         buffer.seek(0)
